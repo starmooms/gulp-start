@@ -1,0 +1,1 @@
+{"version":3,"sources":["main.js"],"names":["console","log"],"mappings":"AAAAA,QAAQC,IAAI,QACZD,QAAQC,IAAI,QACZD,QAAQC,IAAI,QACZD,QAAQC,IAAI,QACZD,QAAQC,IAAI","file":"main.js","sourcesContent":["console.log(\"main\")\r\nconsole.log(\"main\")\r\nconsole.log(\"main\")\r\nconsole.log(\"main\")\r\nconsole.log(\"main\")"],"sourceRoot":"/source/"}
