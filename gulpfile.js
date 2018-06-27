@@ -30,7 +30,7 @@ let lessReg = "./src/**/*.less";
 
 
 //css   ---dev
-gulp.task('gulpCss',()=>{
+gulp.task('devCss',()=>{
     return gulp
             .src(cssReg)
             .pipe(changed('./dist'))   //changed的目录需和dest发布目录一致  程序哪两个目录下文件对比
@@ -38,7 +38,7 @@ gulp.task('gulpCss',()=>{
             .pipe(gulp.dest("./dist"))
             .pipe(reload({stream:true}))
 })
-gulp.task('gulpLess',()=>{
+gulp.task('devLess',()=>{
     return gulp
             .src(lessReg)
             .pipe(changed('./dist'))
@@ -81,14 +81,13 @@ gulp.task('buildLess',()=>{
 
 
 //js
-gulp.task('gulpJs',()=>{
+gulp.task('devJs',()=>{
     return pump([
             gulp.src(jsReg),
             changed('./dist'),
             sourceMap.init(),
             // concat('all.js'))  //concat合并文件
             babel(),
-            uglify(),
             sourceMap.write('.'),
             gulp.dest('./dist'),
             reload({stream:true})
@@ -113,24 +112,30 @@ gulp.task('buildJs',()=>{
 
 
 //html
-gulp.task('gulpHtml',()=>{
+gulp.task('devHtml',()=>{
     return gulp
             .src(htmlReg)
             .pipe(changed('./dist'))
-            .pipe(htmlMin({
-                removeComments: true,//清除HTML注释
-                collapseWhitespace: true,//压缩HTML
-                collapseBooleanAttributes: true,//省略布尔属性的值 <input checked="true"/> ==> <input />
-                removeEmptyAttributes: true,//删除所有空格作属性值 <input id="" /> ==> <input />
-                //removeScriptTypeAttributes: true,//删除<script>的type="text/javascript"
-                // removeStyleLinkTypeAttributes: true,//删除<style>和<link>的type="text/css"
-                minifyJS: true,//压缩页面JS
-                minifyCSS: true//压缩页面CSS
-            }))
             .pipe(gulp.dest('./dist'))
             .pipe(reload({stream:true}))
 })
-
+// gulp.task('gulpHtml',()=>{
+//     return gulp
+//             .src(htmlReg)
+//             .pipe(changed('./dist'))
+//             .pipe(htmlMin({
+//                 removeComments: true,//清除HTML注释
+//                 collapseWhitespace: true,//压缩HTML
+//                 collapseBooleanAttributes: true,//省略布尔属性的值 <input checked="true"/> ==> <input />
+//                 removeEmptyAttributes: true,//删除所有空格作属性值 <input id="" /> ==> <input />
+//                 //removeScriptTypeAttributes: true,//删除<script>的type="text/javascript"
+//                 // removeStyleLinkTypeAttributes: true,//删除<style>和<link>的type="text/css"
+//                 minifyJS: true,//压缩页面JS
+//                 minifyCSS: true//压缩页面CSS
+//             }))
+//             .pipe(gulp.dest('./dist'))
+//             .pipe(reload({stream:true}))
+// })
 
 
 //图片
@@ -162,9 +167,31 @@ gulp.task('gulpImage',()=>{
 gulp.task('cleanDel',()=>{
     return del(['./dist'])    //加return
 })
+//dev  --开发版本（无压缩）
 gulp.task('dev',()=>{
     // [] 中任务是并行的，其他按照先后顺序执行
-    runSequence('cleanDel',['gulpJs','gulpLess','gulpCss','gulpImage','gulpHtml'])
+    runSequence('cleanDel',['devJs','devLess','devCss','gulpImage','devHtml'])
+})
+
+//服务器
+gulp.task('run',()=>{
+    browserSync.init({
+        server:{
+            baseDir:"./dist",       // 启动服务的目录 默认 index.html    
+            // index: 'index.html' // 自定义启动文件名
+        },
+        // open: 'external',   // 决定Browsersync启动时自动打开的网址 external 表示 可外部打开 url, 可以在同一 wifi 下不同终端测试
+        open:false,
+        // injectChanges: true // 注入CSS改变
+        // port:3001
+    })
+
+    //监听文件变化
+    gulp.watch(jsReg,['devJs']);
+    gulp.watch(lessReg,['devLess']);
+    gulp.watch(cssReg,['devCss']);
+    gulp.watch(htmlReg,['devHtml']);
+    gulp.watch('./src/**/*.{png,jpg,gif,ico}', ['gulpImage']);
 })
 
 
@@ -186,25 +213,7 @@ gulp.task('dev',()=>{
 //                 .pipe(gulp.dest('./dist'))
 // })
 
-//服务器
-gulp.task('run',()=>{
-    browserSync.init({
-        server:{
-            baseDir:"./dist",       // 启动服务的目录 默认 index.html    
-            // index: 'index.html' // 自定义启动文件名
-        },
-        // open: 'external',   // 决定Browsersync启动时自动打开的网址 external 表示 可外部打开 url, 可以在同一 wifi 下不同终端测试
-        open:false,
-        // injectChanges: true // 注入CSS改变
-        // port:3001
-    })
 
-    //监听文件变化
-    gulp.watch(jsReg,['gulpJs']);
-    gulp.watch(lessReg,['gulpLess']);
-    gulp.watch(cssReg,['gulpCss']);
-    gulp.watch(htmlReg,['gulpHtml']);
-})
 
 
 
