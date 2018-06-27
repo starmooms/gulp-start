@@ -1,5 +1,5 @@
 console.log(1)
-console.log(2)
+console.log(3)
 let a = 4;
 {
     let a = 5;

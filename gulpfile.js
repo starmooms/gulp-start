@@ -15,7 +15,8 @@ const babel = require('gulp-babel');        //js es6转换
 const autoprefixer = require('gulp-autoprefixer');   //css前缀
 const cache = require('gulp-cache');   //用于图片缓存
 const sourceMap = require('gulp-sourcemaps');  //源地图
-const rev = require('gulp-rev');
+const rev = require('gulp-rev');                 //版本号
+const revCollector = require('gulp-rev-collector');   //html内版本号地址写入
 
 //文件路径
 let jsReg = "./src/**/*.js";
@@ -29,7 +30,8 @@ let lessReg = "./src/**/*.less";
 // }
 
 
-//css   ---dev
+//------------  dev
+//css   
 gulp.task('devCss',()=>{
     return gulp
             .src(cssReg)
@@ -50,36 +52,6 @@ gulp.task('devLess',()=>{
             .pipe(reload({stream:true}))
 })
 
-//css ---build
-gulp.task('buildcss',()=>{
-    return gulp
-            .src(cssReg)
-            .pipe(rev())
-            .pipe(autoprefixer())
-            .pipe(cleanCss())
-            .pipe(gulp.dest("./dist"))
-            .pipe(rev.manifest({
-                base:'rev/css',
-                merge:true
-            }))
-            .pipe(gulp.dest('./rev/css'))
-})
-gulp.task('buildLess',()=>{
-    return gulp
-            .src(lessReg)
-            .pipe(rev())
-            .pipe(less())
-            .pipe(autoprefixer())
-            .pipe(cleanCss())
-            .pipe(gulp.dest("./dist"))
-            .pipe(rev.manifest({
-                base:'rev/css',
-                merge:true
-            }))
-            .pipe(gulp.dest('./rev/css'))
-})
-
-
 //js
 gulp.task('devJs',()=>{
     return pump([
@@ -92,24 +64,7 @@ gulp.task('devJs',()=>{
             gulp.dest('./dist'),
             reload({stream:true})
     ])
-            
 })
-
-gulp.task('buildJs',()=>{
-    return pump([
-        gulp.src(jsReg),
-            rev(),
-            babel(),
-            uglify(),
-            gulp.dest('./dist'),
-            rev.manifest({
-                base:'rev/js',
-                merge:true
-            })
-    ])
-})
-
-
 
 //html
 gulp.task('devHtml',()=>{
@@ -119,23 +74,65 @@ gulp.task('devHtml',()=>{
             .pipe(gulp.dest('./dist'))
             .pipe(reload({stream:true}))
 })
-// gulp.task('gulpHtml',()=>{
-//     return gulp
-//             .src(htmlReg)
-//             .pipe(changed('./dist'))
-//             .pipe(htmlMin({
-//                 removeComments: true,//清除HTML注释
-//                 collapseWhitespace: true,//压缩HTML
-//                 collapseBooleanAttributes: true,//省略布尔属性的值 <input checked="true"/> ==> <input />
-//                 removeEmptyAttributes: true,//删除所有空格作属性值 <input id="" /> ==> <input />
-//                 //removeScriptTypeAttributes: true,//删除<script>的type="text/javascript"
-//                 // removeStyleLinkTypeAttributes: true,//删除<style>和<link>的type="text/css"
-//                 minifyJS: true,//压缩页面JS
-//                 minifyCSS: true//压缩页面CSS
-//             }))
-//             .pipe(gulp.dest('./dist'))
-//             .pipe(reload({stream:true}))
-// })
+
+
+
+//----------------------  build
+//css
+gulp.task('buildCss',()=>{
+    return gulp
+            .src(cssReg)
+            .pipe(autoprefixer())
+            .pipe(cleanCss())
+            .pipe(rev())
+            .pipe(gulp.dest("./dist"))
+            // .pipe(rev.manifest({
+            //     path:'./rev-manifest.json',    //生成manifest的路径
+            //     merge:true                  //合并流中的manifest  这里less和css的任务冲突  放弃合并改用路径生成不同文件
+            // }))
+            .pipe(rev.manifest())
+            .pipe(gulp.dest('./rev/css'))
+})
+gulp.task('buildLess',()=>{
+    return gulp
+            .src(lessReg)
+            .pipe(less())
+            .pipe(autoprefixer())
+            .pipe(cleanCss())
+            .pipe(rev())
+            .pipe(gulp.dest("./dist"))
+            .pipe(rev.manifest())
+            .pipe(gulp.dest('./rev/less'))
+})
+//js
+gulp.task('buildJs',()=>{
+    return pump([
+        gulp.src(jsReg),
+            rev(),
+            babel(),
+            uglify(),
+            gulp.dest('./dist'),
+            rev.manifest(),
+            gulp.dest('./rev/js')
+    ])
+})
+//html
+gulp.task('buildHtml',()=>{
+    return gulp
+            .src(['rev/**/*.json','src/**/*.html'])
+            .pipe(revCollector())   //改变html内的文件名引用
+            .pipe(htmlMin({
+                removeComments: true,//清除HTML注释
+                collapseWhitespace: true,//压缩HTML
+                collapseBooleanAttributes: true,//省略布尔属性的值 <input checked="true"/> ==> <input />
+                removeEmptyAttributes: true,//删除所有空格作属性值 <input id="" /> ==> <input />
+                //removeScriptTypeAttributes: true,//删除<script>的type="text/javascript"
+                // removeStyleLinkTypeAttributes: true,//删除<style>和<link>的type="text/css"
+                minifyJS: true,//压缩页面JS
+                minifyCSS: true//压缩页面CSS
+            }))
+            .pipe(gulp.dest('./dist'))
+})
 
 
 //图片
@@ -157,7 +154,7 @@ gulp.task('gulpImage',()=>{
 })
 
 
-// //删除文件夹
+// //------删除文件夹
 // gulp.task('build',()=>{
 //     del(['dist/']).then(()=>{
 //         gulp.start(['gulpJs','gulpLess','gulpCss','gulpHtml'])   //gulp.start
@@ -165,15 +162,15 @@ gulp.task('gulpImage',()=>{
 // });
     //或使用run-sequence
 gulp.task('cleanDel',()=>{
-    return del(['./dist'])    //加return
+    return del(['./dist','./rev'])    //加return
 })
-//dev  --开发版本（无压缩）
+//dev  -----------开发版本（无压缩）
 gulp.task('dev',()=>{
     // [] 中任务是并行的，其他按照先后顺序执行
     runSequence('cleanDel',['devJs','devLess','devCss','gulpImage','devHtml'])
 })
 
-//服务器
+//-------------服务器
 gulp.task('run',()=>{
     browserSync.init({
         server:{
@@ -194,26 +191,10 @@ gulp.task('run',()=>{
     gulp.watch('./src/**/*.{png,jpg,gif,ico}', ['gulpImage']);
 })
 
-
-// var revCollector = require('gulp-rev-collector');
-// gulp.task('rev',()=>{
-//     return gulp.src(['rev/**/*.json','src/**/*.html'])
-//                 .pipe(revCollector({
-//                     replaceReved: true,
-//                     dirReplacements: {}
-//                 }))
-//                 .pipe(htmlMin({
-//                     removeComments: true,//清除HTML注释
-//                     collapseWhitespace: true,//压缩HTML
-//                     collapseBooleanAttributes: true,//省略布尔属性的值 <input checked="true"/> ==> <input />
-//                     removeEmptyAttributes: true,//删除所有空格作属性值 <input id="" /> ==> <input />
-//                     minifyJS: true,//压缩页面JS
-//                     minifyCSS: true//压缩页面CSS
-//                 }))
-//                 .pipe(gulp.dest('./dist'))
-// })
-
-
+//---  build 开发版本
+gulp.task('build',()=>{
+    runSequence('cleanDel',['buildJs','buildCss','buildLess','gulpImage'],'buildHtml')
+})
 
 
 
@@ -248,8 +229,10 @@ gulp.task('run',()=>{
                         //----  npm install --save babel-runtime
 
 //gulp-rev                添加版本号
-//gulp-rev-all         
+//gulp-rev-all            //或使用这个添加版本号
+
 //gulp-rev-collector      添加html内版本号地址
+//gulp-rev-replace          或使用这个
 
 
 //gulp-concat           合并文件

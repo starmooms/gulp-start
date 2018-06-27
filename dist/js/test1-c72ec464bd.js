@@ -1,0 +1,1 @@
+console.log(1),console.log(3);var a=4,_a=5;console.log("a1:"+_a),console.log("a2:"+a),[1,2,3].forEach(function(o){console.log(o)}),console.log("maptest");
